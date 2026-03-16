@@ -1,5 +1,5 @@
 import express from 'express';
-import line from '@line/bot-sdk';
+import * as line from '@line/bot-sdk';
 import fetch from 'node-fetch';
 
 const app = express();
@@ -10,11 +10,8 @@ const config = {
 };
 
 const client = new line.Client(config);
-
-// 👉 OpenAI API Key（等一下要加到 Render）
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// 👉 判官人格（這就是你產品的靈魂）
 const SYSTEM_PROMPT = `
 你是「判官」。
 個性：毒舌、冷靜、略帶嘲諷，但內心其實在幫人。
@@ -47,7 +44,6 @@ async function handleEvent(event) {
   }
 
   const userMessage = event.message.text;
-
   const reply = await callOpenAI(userMessage);
 
   return client.replyMessage(event.replyToken, {
@@ -56,7 +52,6 @@ async function handleEvent(event) {
   });
 }
 
-// 👉 呼叫 OpenAI（核心）
 async function callOpenAI(userMessage) {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -77,6 +72,11 @@ async function callOpenAI(userMessage) {
 
     const data = await response.json();
 
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('OpenAI response error:', data);
+      return '判官今天懶得理你。';
+    }
+
     return data.choices[0].message.content;
   } catch (error) {
     console.error(error);
@@ -84,6 +84,7 @@ async function callOpenAI(userMessage) {
   }
 }
 
-app.listen(3000, () => {
-  console.log('Judge AI is running 🔥');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Judge AI is running on port ${PORT}`);
 });
